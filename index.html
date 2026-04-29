@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELMS - Leave Management System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --color-cream: #FDFBF7;
+            --color-gold: #D4AF37;
+            --color-gold-light: #E5C76B;
+            --color-gold-dark: #B8860B;
+            --color-gold-deep: #8B6508;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-cream);
+            color: #1a1a1a;
+        }
+
+        [v-cloak] { display: none; }
+
+        .bg-cream { background-color: var(--color-cream); }
+        .text-gold { color: var(--color-gold); }
+        .text-gold-dark { color: var(--color-gold-dark); }
+        .text-gold-deep { color: var(--color-gold-deep); }
+        .bg-gold { background-color: var(--color-gold); }
+        .bg-gold-dark { background-color: var(--color-gold-dark); }
+        
+        /* Hero Cover Style */
+        .cover-page {
+            background-image: linear-gradient(rgba(184, 134, 11, 0.7), rgba(139, 101, 8, 0.85)), url('https://imgur.com/ESTctOj.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(10px); }
+    </style>
+</head>
+<body>
+    <div id="app" v-cloak>
+        <div class="min-h-screen flex flex-col">
+            <!-- Navigation -->
+            <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#D4AF37]/10 shadow-sm h-16 px-4 md:px-8 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="bg-gold text-white p-2 rounded-lg shadow-sm">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    </div>
+                    <span class="font-bold text-xl hidden sm:inline text-gold-deep tracking-tight">ELMS</span>
+                </div>
+
+                <!-- Navigation Links -->
+                <div class="flex gap-1 sm:gap-4 flex-1 justify-center max-w-xl px-2">
+                    <button v-for="item in visibleMenu" 
+                            :key="item.id"
+                            @click="currentView = item.id"
+                            :class="['flex flex-col sm:flex-row items-center gap-1 px-3 py-2 rounded-lg transition-all relative', 
+                                     currentView === item.id ? 'text-gold-dark font-bold' : 'text-gray-400 hover:text-gold hover:bg-gold/5']">
+                        <i :data-lucide="item.icon" class="w-5 h-5"></i>
+                        <span class="text-[10px] sm:text-sm font-medium uppercase sm:capitalize">{{ t[lang][item.id] }}</span>
+                        <div v-if="currentView === item.id" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gold rounded-full"></div>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <button @click="isLangOpen = !isLangOpen" class="flex items-center gap-2 p-2 rounded-full hover:bg-gold/5 border border-transparent hover:border-gold/20">
+                            <i data-lucide="globe" class="w-5 h-5 text-gold"></i>
+                            <span class="text-xs font-bold w-6">{{ lang }}</span>
+                        </button>
+                        <div v-if="isLangOpen" class="absolute right-0 mt-2 w-32 bg-white rounded-xl shadow-xl border border-gold/10 p-1 z-50">
+                            <button @click="setLang('EN')" :class="['w-full text-left px-4 py-2 rounded-lg text-sm', lang === 'EN' ? 'bg-gold/10 text-gold-deep font-bold' : 'hover:bg-gold/5']">English 🇬🇧</button>
+                            <button @click="setLang('FR')" :class="['w-full text-left px-4 py-2 rounded-lg text-sm', lang === 'FR' ? 'bg-gold/10 text-gold-deep font-bold' : 'hover:bg-gold/5']">Français 🇫🇷</button>
+                        </div>
+                    </div>
+                    <button @click="logout" class="text-xs font-medium text-gray-400 hover:text-red-500 transition-colors">Logout</button>
+                </div>
+            </nav>
+
+            <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+                <transition name="fade" mode="out-in">
+                    <!-- HOME VIEW WITH COVER BACKGROUND -->
+                    <div v-if="currentView === 'home'" class="space-y-8">
+                        <div class="cover-page p-12 md:p-20 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-center min-h-[350px]">
+                            <div class="relative z-10">
+                                <span class="bg-white/20 backdrop-blur-md px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-4 inline-block border border-white/30">
+                                    {{ user.role }} Portal
+                                </span>
+                                <h1 class="text-4xl md:text-6xl font-black tracking-tighter mb-4">
+                                    {{ t[lang].welcome }},<br>{{ user.name }}
+                                </h1>
+                                <p class="text-gold-light text-lg opacity-90 max-w-md font-medium">
+                                    You have {{ stats.pending }} pending leave applications requiring attention.
+                                </p>
+                            </div>
+                            <i data-lucide="calendar" class="absolute right-[-40px] bottom-[-40px] text-white/5 w-80 h-80 -rotate-12"></i>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="md:col-span-2 bg-white rounded-3xl p-8 border border-gold/10 shadow-sm">
+                                <h2 class="text-xl font-bold text-gray-900 mb-8 flex items-center gap-2">
+                                    <i data-lucide="clock" class="text-gold w-6 h-6"></i> {{ t[lang].leaveBalanceSummary }}
+                                </h2>
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div v-for="(val, type) in balance" :key="type" class="bg-cream rounded-2xl p-6 text-center border border-gold/5 hover:border-gold/20 transition-all">
+                                        <div class="text-3xl font-bold text-gold-deep mb-1">{{ val }}</div>
+                                        <div class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ type }}</div>
+                                    </div>
+                                </div>
+                                <button v-if="user.role !== 'Supervisor'" @click="currentView = 'apply'" class="mt-8 flex items-center justify-center gap-2 w-full bg-gold-dark text-white font-bold py-5 rounded-2xl hover:bg-gold-deep transition-all shadow-xl shadow-gold/20 active:scale-95">
+                                    {{ t[lang].quickApply }} <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div v-for="s in ['pending', 'approved', 'rejected']" class="p-5 bg-white rounded-2xl border border-gold/5 shadow-sm hover:border-gold/40 transition-all group">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-4">
+                                            <div :class="['p-3 rounded-xl', s === 'approved' ? 'bg-green-50 text-green-600' : s === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-gold/5 text-gold-dark']">
+                                                <i :data-lucide="s === 'approved' ? 'check-circle-2' : s === 'rejected' ? 'x-circle' : 'clock'" class="w-6 h-6"></i>
+                                            </div>
+                                            <span class="font-bold text-gray-700 capitalize text-lg">{{ s }}</span>
+                                        </div>
+                                        <span :class="['text-2xl font-black', s === 'approved' ? 'text-green-600' : s === 'rejected' ? 'text-red-600' : 'text-gold-dark']">{{ stats[s] }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DASHBOARD VIEW -->
+                    <div v-else-if="currentView === 'dashboard'" class="space-y-6">
+                        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">{{ t[lang].dashboard }} - {{ user.role }}</h1>
+                        <div v-if="user.role === 'Employee'" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="lg:col-span-2 space-y-6">
+                                <h2 class="text-xl font-bold text-gray-900">Recent Activity</h2>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div v-for="req in requests.slice(0,4)" :key="req.id" class="bg-white p-6 rounded-2xl border border-gold/10 shadow-sm">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <span class="text-xs font-bold text-gold opacity-60 uppercase tracking-tighter">{{ req.id }}</span>
+                                            <span :class="['px-3 py-1 rounded-full text-[10px] font-black uppercase', req.status === 'Approved' ? 'bg-green-50 text-green-600' : 'bg-gold/10 text-gold-dark']">{{ req.status }}</span>
+                                        </div>
+                                        <h3 class="font-bold text-gray-900 text-lg leading-tight">{{ req.type }} Leave</h3>
+                                        <p class="text-sm text-gray-500 font-medium">{{ req.startDate }} - {{ req.endDate }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-6">
+                                <h2 class="text-xl font-bold text-gray-900">System Alerts</h2>
+                                <div v-for="i in 3" class="flex gap-4 p-5 bg-white rounded-2xl border border-gold/10">
+                                    <div class="w-12 h-12 bg-gold/10 text-gold rounded-xl flex items-center justify-center shrink-0"><i data-lucide="alert-circle" class="w-6 h-6"></i></div>
+                                    <div><p class="text-sm font-bold text-gray-900">Policy Update: Paternity</p><p class="text-xs text-gray-500">Scheduled for May 1st</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- APPLY VIEW -->
+                    <div v-else-if="currentView === 'apply'" class="max-w-2xl mx-auto space-y-8 pb-32">
+                        <h1 class="text-3xl font-black text-gray-900 tracking-tight">{{ t[lang].apply }}</h1>
+                        <div class="bg-white rounded-[2rem] p-10 border border-gold/10 shadow-sm space-y-8">
+                            <div class="space-y-4">
+                                <label class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ t[lang].type }}</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <button v-for="type in ['Annual', 'Sick', 'Personal', 'Maternity']" @click="form.type = type"
+                                            :class="['py-5 rounded-2xl border-2 font-bold transition-all text-sm', form.type === type ? 'border-gold bg-gold/5 text-gold-dark shadow-inner' : 'border-cream text-gray-400 hover:border-gold/20']">
+                                        {{ type }}
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-8">
+                                <div class="space-y-4">
+                                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ t[lang].startDate }}</label>
+                                    <input type="date" v-model="form.startDate" class="w-full p-5 rounded-2xl border-2 border-cream bg-cream/30 focus:border-gold outline-none font-bold text-gray-700">
+                                </div>
+                                <div class="space-y-4">
+                                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ t[lang].endDate }}</label>
+                                    <input type="date" v-model="form.endDate" class="w-full p-5 rounded-2xl border-2 border-cream bg-cream/30 focus:border-gold outline-none font-bold text-gray-700">
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <label class="text-xs font-black text-gray-400 uppercase tracking-widest">Reason for absence</label>
+                                <textarea rows="4" v-model="form.reason" class="w-full p-5 rounded-2xl border-2 border-cream bg-cream/30 focus:border-gold outline-none font-medium" placeholder="Brief explanation..."></textarea>
+                            </div>
+                        </div>
+                        <div class="fixed bottom-0 left-0 right-0 p-8 bg-white/70 backdrop-blur-lg border-t border-gold/10 flex justify-center z-40">
+                            <button @click="submitApplication" :disabled="!form.startDate || !form.endDate" class="max-w-xl w-full bg-gold-dark disabled:bg-gray-200 text-white font-black py-6 rounded-2xl shadow-2xl uppercase tracking-[0.2em] text-sm active:scale-95 transition-all">
+                                {{ t[lang].submitApplication }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- HISTORY VIEW -->
+                    <div v-else-if="currentView === 'history'" class="space-y-6">
+                        <h1 class="text-3xl font-black text-gray-900 tracking-tight">{{ t[lang].history }}</h1>
+                        <div class="bg-white rounded-[2rem] border border-gold/10 shadow-sm overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-cream/50 text-gold-deep text-[10px] uppercase font-black tracking-[0.15em] border-b border-gold/5">
+                                    <tr>
+                                        <th class="px-8 py-5">Request ID</th>
+                                        <th class="px-8 py-5">Leave Category</th>
+                                        <th class="px-8 py-5">Duration</th>
+                                        <th class="px-8 py-5">Current Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gold/5">
+                                    <tr v-for="req in requests" :key="req.id" class="hover:bg-cream transition-colors">
+                                        <td class="px-8 py-6 font-mono font-bold text-gray-900">{{ req.id }}</td>
+                                        <td class="px-8 py-6 text-sm font-bold text-gray-700">{{ req.type }}</td>
+                                        <td class="px-8 py-6 text-xs font-bold text-gray-400">{{ req.startDate }} → {{ req.endDate }}</td>
+                                        <td class="px-8 py-6">
+                                            <span :class="['px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider', 
+                                                           req.status === 'Approved' ? 'bg-green-50 text-green-600' : 
+                                                           req.status === 'Rejected' ? 'bg-red-50 text-red-600' : 'bg-gold/10 text-gold-dark']">
+                                                {{ req.status }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </transition>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+
+        createApp({
+            setup() {
+                const lang = ref('EN');
+                const isLangOpen = ref(false);
+                const currentView = ref('home');
+                const user = ref({ name: 'Carine Chin', role: 'Employee' });
+                
+                const requests = ref([
+                    { id: 'LR-2026-001', employee: 'Carine Chin', type: 'Annual', startDate: '2026-04-10', endDate: '2026-04-15', status: 'Approved' },
+                    { id: 'LR-2026-002', employee: 'Carine Chin', type: 'Sick', startDate: '2026-05-01', endDate: '2026-05-02', status: 'Pending' }
+                ]);
+
+                const balance = ref({ Annual: 18, Sick: 5, Personal: 3 });
+                const form = ref({ type: 'Annual', startDate: '', endDate: '', reason: '' });
+
+                const t = {
+                    EN: {
+                        home: 'Home', dashboard: 'Dashboard', apply: 'Apply', history: 'History',
+                        welcome: 'Welcome back', leaveBalanceSummary: 'Leave Balance Summary',
+                        quickApply: 'Quick Apply', pending: 'Pending', approved: 'Approved',
+                        rejected: 'Rejected', submitApplication: 'Submit Application',
+                        type: 'Leave Type', startDate: 'Start Date', endDate: 'End Date'
+                    },
+                    FR: {
+                        home: 'Accueil', dashboard: 'Tableau', apply: 'Appliquer', history: 'Historique',
+                        welcome: 'Bienvenue', leaveBalanceSummary: 'Résumé du solde',
+                        quickApply: 'Demande Rapide', pending: 'En attente', approved: 'Approuvé',
+                        rejected: 'Refusé', submitApplication: 'Soumettre la demande',
+                        type: 'Type de congé', startDate: 'Date de début', endDate: 'Date de fin'
+                    }
+                };
+
+                const visibleMenu = computed(() => {
+                    const items = [
+                        { id: 'home', icon: 'home', access: ['Employee', 'Supervisor'] },
+                        { id: 'dashboard', icon: 'layout-dashboard', access: ['Employee', 'Supervisor'] },
+                        { id: 'apply', icon: 'pen-tool', access: ['Employee'] },
+                        { id: 'history', icon: 'history', access: ['Employee', 'Supervisor'] },
+                    ];
+                    return items.filter(i => i.access.includes(user.value.role));
+                });
+
+                const stats = computed(() => ({
+                    pending: requests.value.filter(r => r.status === 'Pending').length,
+                    approved: requests.value.filter(r => r.status === 'Approved').length,
+                    rejected: requests.value.filter(r => r.status === 'Rejected').length,
+                }));
+
+                const setLang = (l) => { lang.value = l; isLangOpen.value = false; };
+
+                const submitApplication = () => {
+                    const newReq = {
+                        id: `LR-2026-0${requests.value.length + 1}`,
+                        employee: user.value.name,
+                        ...form.value,
+                        status: 'Pending'
+                    };
+                    requests.value.unshift(newReq);
+                    currentView.value = 'history';
+                    form.value = { type: 'Annual', startDate: '', endDate: '', reason: '' };
+                };
+
+                const logout = () => alert("Logging out...");
+
+                watch(currentView, () => {
+                    nextTick(() => lucide.createIcons());
+                });
+
+                onMounted(() => { lucide.createIcons(); });
+
+                return {
+                    lang, isLangOpen, currentView, user, requests, balance, form, t,
+                    visibleMenu, stats, setLang, submitApplication, logout
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
